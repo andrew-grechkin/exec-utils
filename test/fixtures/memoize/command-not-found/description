@@ -1,0 +1,2 @@
+Wrapping a nonexistent COMMAND exits with 127 (ExitNotFound), the coreutils timeout(1)-style code for "command couldn't
+be found".

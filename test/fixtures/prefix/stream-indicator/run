@@ -1,0 +1,15 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+o=$("$BIN" -p '[X]' -s -- sh -c 'echo out')
+if [[ "$o" != $'STDOUT| [X]\tout' ]]; then
+
+    echo "stdout: expected 'STDOUT| [X]	 out', got '$o'" >&2
+    exit 1
+fi
+
+e=$("$BIN" -p '[X]' -s -- sh -c 'echo err >&2' 2>&1 >/dev/null)
+if [[ "$e" != $'STDERR| [X]\terr' ]]; then
+
+    echo "stderr: expected 'STDERR| [X]	err', got '$e'" >&2
+    exit 1
+fi

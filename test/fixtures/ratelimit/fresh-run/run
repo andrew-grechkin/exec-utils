@@ -1,0 +1,11 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export RATELIMIT_DIR=$(mktemp -d)
+mark=$(mktemp)
+trap 'rm -rf "$RATELIMIT_DIR" "$mark"' EXIT
+
+"$BIN" -i 5s -l fresh -- sh -c 'printf x >> "$1"' _ "$mark"
+if [[ "$(wc -c < "$mark")" != "1" ]]; then
+    echo "expected first-run to execute (mark size 1), got $(wc -c < "$mark")" >&2
+    exit 1
+fi

@@ -1,0 +1,64 @@
+Usage: prefix [OPTIONS] [--] COMMAND [COMMAND ARGS...]
+
+Prepend a per-line label to COMMAND's STDOUT (optionally STDERR). Streams
+line-by-line; forwards the wrapped command's exit code.
+
+Bare `prefix -- COMMAND` defaults to a timestamp prefix.
+
+Options:
+  -p, --prefix TEXT      Prefix template. Supports format tokens (below).
+                         Default: "%T" (ISO-8601 timestamp).
+  -e, --also-stderr      Apply the prefix to STDERR too (default: STDOUT only).
+  -s, --stream           Distinguish STDOUT/STDERR; implies --also-stderr.
+                         STDOUT lines get "1| <prefix>", stderr lines get
+                         "2| <prefix>".
+      --sep STRING       Separator between the prefix and the line body
+                         (default: single space).
+
+  -h, --help             Display help message
+      --version          Display version information (tip: prefix --version | jq -r .Version)
+  --                     Stop parsing options and treat arguments after as COMMAND
+
+Format tokens in --prefix:
+  %T   ISO-8601 local timestamp: 2006-01-02T15:04:05
+  %t   Unix epoch seconds
+  %p   PID of the wrapped command
+  %n   Sequence number (1-based, per stream)
+  %%   Literal '%'
+
+Exit codes (coreutils timeout(1) convention):
+  0                      Wrapped command exited 0
+  <child exit>           Wrapped command's non-zero exit (propagated)
+  125                    Bad flags, pipe setup / wait / pump failure
+  126                    Wrapped command found but couldn't be invoked
+  127                    Wrapped command not found
+
+Notes:
+  Like other streaming wrappers, COMMAND's stdout is a pipe (not a tty),
+  so libc-based programs switch to block buffering. For line-flushed
+  input, tell COMMAND itself to line-buffer:
+  "prefix -- stdbuf -oL slow-cmd", "prefix -- python3 -u ...",
+  "prefix -- grep --line-buffered ...".
+
+Examples:
+  # Timestamp every line (default)
+  prefix -- find /usr/lib/modules -type f -exec sha256sum {} +
+
+  # Distinguish STDOUT/STDERR with markers (default timestamp still applies)
+  prefix -s -- bash -c 'echo this is STDOUT but; echo this is STDERR >&2'
+
+  # Custom template with PID and sequence
+  prefix -p '[%p #%n] %T' -- ls -la
+
+  # Parallel workers. Each request stamps its client-side send time in
+  # the URL as `?t=<epoch.ns>`; httpbin echoes it back in `.args.t` so
+  # you can see all 8 workers really launched around the same instant.
+  seq 1 8 | \
+    time xargs -P0 -rn1 bash -c 'curl -sSL "https://httpbin.org/delay/1?w=$0&t=$(date +%s.%N)" \
+       | spew prefix -p "[worker $0] %T" -- jq -SC'
+  seq 1 8 | time xargs -P0 -rn1 bash -c \
+      'spew prefix -p "[worker $0] %T" -- curl -sSL "https://httpbin.org/delay/1?w=$0&t=$(date +%s.%N)"'
+
+  # Parallel requests prefixed
+  seq 1 8 | xargs -P0 -rn1 bash -c 'spew prefix -p "[worker $0] %T" -- echo "time of this request: $(date --rfc-3339=ns)"'
+  echo $'Amsterdam\nBrussels' | xargs -P0 -rI{} bash -c 'spew prefix -p "[worker {}] %T" -- curl -Ls "wttr.in/{}?0"'

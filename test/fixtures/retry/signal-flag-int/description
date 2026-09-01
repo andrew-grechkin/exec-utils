@@ -1,0 +1,2 @@
+-s picks a different first signal in the escalation. -s INT means retry sends SIGINT before SIGKILL (auto-appended).
+sleep responds to SIGINT's default disposition (terminate), so retry propagates 130 (128 + SIGINT).

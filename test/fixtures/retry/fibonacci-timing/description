@@ -1,0 +1,2 @@
+-b fib produces the Fibonacci delay sequence: d, d, 2d, 3d, ... Verified
+via 5 attempts with d=100ms; total sleep should be d+d+2d+3d = 700ms.

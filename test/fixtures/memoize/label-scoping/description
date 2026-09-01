@@ -1,0 +1,1 @@
+Same command under different labels gets independent caches. Same label across invocations hits.

@@ -1,0 +1,19 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+mark=$(mktemp)
+trap 'rm -f "$mark"' EXIT
+
+# RETRY_MAX=4 -> 4 total attempts.
+: > "$mark"
+RETRY_MAX=4 RETRY_DELAY=20ms "$BIN" -- sh -c 'printf x >> "$1"; exit 1' _ "$mark" </dev/null || true
+if [[ "$(wc -c < "$mark")" != "4" ]]; then
+    echo "RETRY_MAX not honored: expected 4 attempts, got $(wc -c < "$mark")" >&2
+    exit 1
+fi
+
+# Flag -n overrides RETRY_MAX.
+: > "$mark"
+RETRY_MAX=4 RETRY_DELAY=20ms "$BIN" -n 2 -- sh -c 'printf x >> "$1"; exit 1' _ "$mark" </dev/null || true
+if [[ "$(wc -c < "$mark")" != "2" ]]; then
+    echo "flag override failed: expected 2 attempts, got $(wc -c < "$mark")" >&2
+    exit 1
+fi

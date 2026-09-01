@@ -1,0 +1,1 @@
+Command that exits 0 on the first attempt returns 0 immediately with no delay.

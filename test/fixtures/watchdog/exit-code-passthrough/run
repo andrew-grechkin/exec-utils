@@ -1,0 +1,8 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+rc=0
+"$BIN" -i 5s -- bash -c 'exit 42' </dev/null || rc=$?
+if [[ "$rc" != "42" ]]; then
+    echo "expected exit 42, got $rc" >&2
+    exit 1
+fi

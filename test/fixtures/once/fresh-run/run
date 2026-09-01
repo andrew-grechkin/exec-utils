@@ -1,0 +1,18 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export ONCE_DIR=$(mktemp -d)
+mark=$(mktemp)
+trap 'rm -rf "$ONCE_DIR" "$mark"' EXIT
+
+start=$EPOCHREALTIME
+"$BIN" -w -l fresh -- sh -c 'printf ran > "$1"' _ "$mark" </dev/null
+elapsed=$(perl -E 'say sprintf "%.3f", $ARGV[0] - $ARGV[1]' "$EPOCHREALTIME" "$start")
+
+if [[ "$(<"$mark")" != "ran" ]]; then
+    echo "command did not run; mark = $(<"$mark")" >&2
+    exit 1
+fi
+if perl -E 'exit !($ARGV[0] > 3)' "$elapsed"; then
+    echo "fresh acquire was slow: ${elapsed}s (expected << 3s)" >&2
+    exit 1
+fi

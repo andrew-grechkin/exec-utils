@@ -1,0 +1,3 @@
+A silent child gets killed after the idle window. Wall-clock proves the kill: sleep 10 finishes in ~300ms instead of
+10s. Child exit is 143 (128 + SIGTERM) when the child responds to TERM, or 137 (128 + SIGKILL) when it doesn't and
+watchdog escalates.

@@ -1,0 +1,2 @@
+A failing wrapped command propagates its exit code AND does not write cache. Any prior cache is preserved (not tested
+here; see the code path).

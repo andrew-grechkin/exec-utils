@@ -1,0 +1,2 @@
+Second invocation with identical args serves cached output (the wrapped command is NOT re-run). Detected via a
+unique-per-run timestamp.

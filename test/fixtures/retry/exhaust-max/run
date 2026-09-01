@@ -1,0 +1,16 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+mark=$(mktemp)
+trap 'rm -f "$mark"' EXIT
+
+rc=0
+"$BIN" -n 3 -d 20ms -- sh -c 'printf x >> "$1"; exit 42' _ "$mark" </dev/null || rc=$?
+
+if [[ "$rc" != "42" ]]; then
+    echo "expected exit 42, got $rc" >&2
+    exit 1
+fi
+count=$(wc -c < "$mark")
+if [[ "$count" != "3" ]]; then
+    echo "expected exactly 3 attempts, saw $count" >&2
+    exit 1
+fi

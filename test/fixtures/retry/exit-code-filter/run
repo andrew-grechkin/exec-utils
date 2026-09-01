@@ -1,0 +1,29 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+mark=$(mktemp)
+trap 'rm -f "$mark"' EXIT
+
+# Out-of-set failure: exit 7, filter is {42}. Should NOT retry -> 1 attempt only.
+: > "$mark"
+rc=0
+"$BIN" -n 5 -d 20ms -c 42 -- sh -c 'printf x >> "$1"; exit 7' _ "$mark" </dev/null || rc=$?
+if [[ "$rc" != "7" ]]; then
+    echo "out-of-set: expected exit 7, got $rc" >&2
+    exit 1
+fi
+if [[ "$(wc -c < "$mark")" != "1" ]]; then
+    echo "out-of-set: expected 1 attempt, got $(wc -c < "$mark")" >&2
+    exit 1
+fi
+
+# In-set failure: exit 42, filter is {42}. Should retry -> 5 attempts.
+: > "$mark"
+rc=0
+"$BIN" -n 5 -d 20ms -c 42 -- sh -c 'printf x >> "$1"; exit 42' _ "$mark" </dev/null || rc=$?
+if [[ "$rc" != "42" ]]; then
+    echo "in-set: expected exit 42, got $rc" >&2
+    exit 1
+fi
+if [[ "$(wc -c < "$mark")" != "5" ]]; then
+    echo "in-set: expected 5 attempts, got $(wc -c < "$mark")" >&2
+    exit 1
+fi

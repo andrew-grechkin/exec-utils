@@ -1,0 +1,2 @@
+-e counts STDERR bytes as activity. A child that writes ONLY to stderr keeps the watchdog fed and finishes cleanly
+even though its stdout is silent for the full duration.

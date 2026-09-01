@@ -1,0 +1,3 @@
+-c 0 with a reliable command: retry exhausts -n attempts (all exit 0)
+and returns 0. Verified by counting invocations and checking the final
+exit code.

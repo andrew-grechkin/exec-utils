@@ -1,0 +1,17 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+err=$(mktemp)
+trap 'rm -f "$err"' EXIT
+
+# Without -v: no verbose output.
+"$BIN" -n 3 -d 20ms -- false </dev/null 2> "$err" || true
+if [[ -s "$err" ]]; then
+    echo "expected empty stderr without -v; got:" >&2
+    cat "$err" >&2
+    exit 1
+fi
+
+# With -v: expect per-attempt log lines and a max-reached line.
+"$BIN" -n 3 -d 20ms -v -- false </dev/null 2> "$err" || true
+grep -q 'attempt 1 exit 1; sleeping' "$err" || { echo "missing attempt 1 log"; cat "$err" >&2; exit 1; }
+grep -q 'attempt 2 exit 1; sleeping' "$err" || { echo "missing attempt 2 log"; cat "$err" >&2; exit 1; }
+grep -q 'reached max 3 attempts'     "$err" || { echo "missing max-reached log"; cat "$err" >&2; exit 1; }

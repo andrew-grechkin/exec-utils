@@ -1,0 +1,2 @@
+-s (skip) mode: if the lock is held by another process, exit 0 without running the command. Verified by counting a
+side-effect mark: only the holder should record an invocation.

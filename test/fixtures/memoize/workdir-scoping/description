@@ -1,0 +1,1 @@
+-w includes $PWD in the cache key. Same command from different directories produces independent caches.

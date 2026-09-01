@@ -1,0 +1,1 @@
+-e/--also-stderr applies the prefix to stderr too (default: stdout only, stderr passes through untouched).

@@ -1,0 +1,2 @@
+-s bumps cache mtime on each hit, so reads within the TTL window keep the cache alive indefinitely. Two reads spaced
+within the window both hit, even when their total elapsed time exceeds the TTL.

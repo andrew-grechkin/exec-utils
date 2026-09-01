@@ -1,0 +1,2 @@
+-w (wait) mode (default): a call arriving during the cooldown sleeps the remainder, then runs. Wall-clock proves the
+sleep: with -i 300ms, two back-to-back calls take ~300ms total (first is immediate, second waits ~300ms).

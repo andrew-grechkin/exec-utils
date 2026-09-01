@@ -1,0 +1,3 @@
+-v logs "attempt N exit K; sleeping D" per retryable attempt and a final
+"reached max N attempts (last exit K)" line when the -n limit is hit.
+No verbose output without -v.

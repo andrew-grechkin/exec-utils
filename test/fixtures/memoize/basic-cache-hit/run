@@ -1,0 +1,12 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export MEMOIZE_DIR=$(mktemp -d)
+trap 'rm -rf "$MEMOIZE_DIR"' EXIT
+
+first=$("$BIN" -t 1m -- sh -c 'date +%s.%N')
+second=$("$BIN" -t 1m -- sh -c 'date +%s.%N')
+
+if [[ "$first" != "$second" ]]; then
+    echo "cache miss on second run: first=$first second=$second" >&2
+    exit 1
+fi

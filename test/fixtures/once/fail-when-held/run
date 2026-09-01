@@ -1,0 +1,28 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export ONCE_DIR=$(mktemp -d)
+mark=$(mktemp)
+ready="$ONCE_DIR/holder.ready"
+trap 'kill "$holder" 2>/dev/null || true; wait 2>/dev/null || true; rm -rf "$ONCE_DIR" "$mark"' EXIT
+
+"$BIN" -w -l T -- bash -c 'touch "$1"; sleep 5' _ "$ready" </dev/null >/dev/null 2>&1 &
+holder=$!
+for _ in $(seq 1 500); do
+    [[ -e "$ready" ]] && break
+    sleep 0.01
+done
+if [[ ! -e "$ready" ]]; then
+    echo "holder never signalled ready; skipping test" >&2
+    exit 1
+fi
+
+rc=0
+"$BIN" -f -l T -- sh -c 'printf x >> "$1"' _ "$mark" </dev/null >/dev/null 2>&1 || rc=$?
+if [[ "$rc" != "125" ]]; then
+    echo "expected exit 125 (fail mode), got $rc" >&2
+    exit 1
+fi
+if [[ -s "$mark" ]]; then
+    echo "command should not have run; mark size = $(wc -c < "$mark")" >&2
+    exit 1
+fi

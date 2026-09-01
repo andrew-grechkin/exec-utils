@@ -1,0 +1,19 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export RATELIMIT_DIR=$(mktemp -d)
+mark=$(mktemp)
+trap 'rm -rf "$RATELIMIT_DIR" "$mark"' EXIT
+
+# 1st: alpha runs.  2nd: alpha again -> skips (same label, in cooldown).
+# 3rd: beta runs (fresh label).  4th: beta again -> skips.
+# Expected total: 2 mark bytes (alpha's 1st + beta's 1st).
+"$BIN" -s -i 10s -l alpha -- sh -c 'printf x >> "$1"' _ "$mark"
+"$BIN" -s -i 10s -l alpha -- sh -c 'printf x >> "$1"' _ "$mark"
+"$BIN" -s -i 10s -l beta  -- sh -c 'printf x >> "$1"' _ "$mark"
+"$BIN" -s -i 10s -l beta  -- sh -c 'printf x >> "$1"' _ "$mark"
+
+count=$(wc -c < "$mark")
+if [[ "$count" != "2" ]]; then
+    echo "expected 2 attempts (alpha's 1st + beta's 1st), saw $count" >&2
+    exit 1
+fi

@@ -1,0 +1,26 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+out=$(printf 'a\nb\nc\n' | "$BIN" -p '#%n' -- cat)
+
+# Expect: "#1 a\n#2 b\n#3 c\n". Counter increments per line, default sep=' '.
+want=$'#1\ta\n#2\tb\n#3\tc'
+if [[ "$out" != "$want" ]]; then
+    echo "counter mismatch:" >&2
+    echo "got:  $(printf '%s' "$out" | cat -A)" >&2
+    echo "want: $(printf '%s' "$want" | cat -A)" >&2
+    exit 1
+fi
+
+# Literal %%: template "100%% done" should output "100% done ".
+out=$(printf 'x\n' | "$BIN" -p '100%% done' -- cat)
+if [[ "$out" != $'100% done\tx' ]]; then
+    echo "%% literal mismatch: got '$out'" >&2
+    exit 1
+fi
+
+# -p wins over the default timestamp.
+out=$(printf 'z\n' | "$BIN" -p 'only-p' -- cat)
+if [[ "$out" != $'only-p\tz' ]]; then
+    echo "-p should override default: got '$out'" >&2
+    exit 1
+fi

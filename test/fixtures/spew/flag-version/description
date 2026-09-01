@@ -1,0 +1,1 @@
+--version prints build info as JSON; assert it contains "Path".

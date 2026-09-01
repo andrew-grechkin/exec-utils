@@ -1,0 +1,15 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+# Default: stderr NOT prefixed.
+err=$("$BIN" -p '[X]' -- sh -c 'echo out; echo err >&2' 2>&1 >/dev/null)
+if [[ "$err" != "err" ]]; then
+    echo "default: expected stderr unchanged 'err', got '$err'" >&2
+    exit 1
+fi
+
+# With -e: stderr IS prefixed.
+err=$("$BIN" -p '[X]' -e -- sh -c 'echo out; echo err >&2' 2>&1 >/dev/null)
+if [[ "$err" != $'[X]\terr' ]]; then
+    echo "with -e: expected '[X] err', got '$err'" >&2
+    exit 1
+fi

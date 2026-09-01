@@ -1,0 +1,1 @@
+-C -l LABEL clears only that label's subdir; other labels' caches remain intact.

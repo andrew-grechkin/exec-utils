@@ -1,0 +1,18 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export MEMOIZE_DIR=$(mktemp -d)
+mark=$(mktemp)
+trap 'rm -rf "$MEMOIZE_DIR" "$mark"' EXIT
+
+rc=0
+"$BIN" -c -- sh -c "printf x >> '$mark'; echo out" > /dev/null 2>&1 || rc=$?
+
+if [[ "$rc" != "125" ]]; then
+    echo "expected exit 125 (ExitWrapperError) on cache-only miss, got $rc" >&2
+    exit 1
+fi
+
+if [[ -s "$mark" ]]; then
+    echo "wrapped command was executed despite -c miss (mark size $(wc -c < "$mark"))" >&2
+    exit 1
+fi

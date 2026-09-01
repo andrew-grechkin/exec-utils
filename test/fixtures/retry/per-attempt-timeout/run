@@ -1,0 +1,16 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+start=$EPOCHREALTIME
+rc=0
+"$BIN" -n 2 -t 100ms -d 50ms -- sleep 2 </dev/null || rc=$?
+elapsed=$(perl -E 'say sprintf "%.3f", $ARGV[0] - $ARGV[1]' "$EPOCHREALTIME" "$start")
+
+if [[ "$rc" == "0" ]]; then
+    echo "expected non-zero rc (both attempts killed by timeout)" >&2
+    exit 1
+fi
+# 2 attempts * ~100ms + 1 sleep of 50ms = ~250ms. If timeout wasn't applied,
+# the two sleep 2's would take ~4s.
+if perl -E 'exit !($ARGV[0] > 3)' "$elapsed"; then
+    echo "per-attempt timeout ineffective: took ${elapsed}s (expected << 3s)" >&2
+    exit 1
+fi

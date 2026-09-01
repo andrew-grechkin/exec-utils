@@ -1,0 +1,3 @@
+-t kills an attempt that runs longer than the timeout, and retry counts
+that as a failure. With -n 2 -t 100ms and a command that sleeps 2s, retry
+finishes in ~200ms of runtime (not 4s of sleeping).

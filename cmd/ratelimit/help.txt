@@ -1,0 +1,46 @@
+Usage: ratelimit [OPTIONS] [--] COMMAND [COMMAND ARGS...]
+
+Bound how often COMMAND may run. Complement to memoize: memoize caches the output of pure computations; ratelimit gates
+side-effect commands (notifications, backups, API writes) so they can't be issued more often than the interval allows.
+
+State lives under $RATELIMIT_DIR (default: $XDG_RUNTIME_DIR/ratelimit, or /tmp/ratelimit when XDG_RUNTIME_DIR is unset).
+Per-invocation state is one empty file whose mtime holds the timestamp of the last run's START. The command runs iff
+the file is missing or its mtime is older than the interval; otherwise the -w / -s / -f mode picks the response.
+
+Options:
+  -i, --interval DUR     Minimum time between runs (default: 1s). Accepts "500ms", "5m", "1h30min", "1day", etc.
+  -w, --wait             If within the cooldown, hold flock and sleep until the interval elapses, then run. Default.
+  -s, --skip             If within the cooldown, exit 0 without running COMMAND (cron-friendly).
+  -f, --fail             If within the cooldown, exit 125 without running COMMAND (fail loud in scripts).
+  -l, --label LABEL      Namespace by label (default: sha256 of COMMAND args). Two commands with different args get
+                         independent cooldowns unless -l joins them.
+  -d, --dir PATH         State dir (overrides RATELIMIT_DIR / default).
+  -v, --verbose          Log the decision (cooldown remaining, mode, action) to STDERR.
+
+  -h, --help             Display help message
+      --version          Display version information (tip: ratelimit --version | jq -r .Version)
+  --                     Stop parsing options and treat arguments after as COMMAND
+
+Environment:
+  RATELIMIT_DIR          Default value for -d / --dir
+  RATELIMIT_INTERVAL     Default value for -i / --interval
+
+Exit codes (coreutils timeout(1) convention):
+  0                      Loop ended cleanly. COMMAND exited 0, or -s skipped a cooldown call
+  <child exit>           COMMAND's non-zero exit (propagated)
+  125                    Bad flags, mutually-exclusive modes chosen, state-dir/file I/O error, or -f refusal
+  126                    Wrapped command found but couldn't be invoked
+  127                    Wrapped command not found
+
+Examples:
+  # At-most-once-per-minute, cron-friendly (skip if too soon)
+  * * * * * ratelimit -s -i 5m -l backup -- rsync -a src/ dst/
+
+  # Poll a health endpoint politely; wait between calls (default mode)
+  ratelimit -i 30s -l health -- curl -fsSL https://svc.internal/health
+
+  # Refuse to send more than one alert per hour (loud failure)
+  ratelimit -f -i 1h -l disk-full -- send-page 'disk full'
+
+  # Compose with retry: retry until success, but only try at most once per 30s
+  retry -n 5 -- ratelimit -i 30s -l flaky -- curl -fsSL https://flaky.api/

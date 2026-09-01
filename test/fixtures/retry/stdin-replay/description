@@ -1,0 +1,2 @@
+STDIN is buffered on entry and replayed to every attempt. Same bytes reach
+each retry, letting pipelines like `printf x | retry -- cmd` work.

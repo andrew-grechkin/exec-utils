@@ -1,0 +1,1 @@
+-f FILE uses FILE as the cache file directly. -l is ignored when -f is set.

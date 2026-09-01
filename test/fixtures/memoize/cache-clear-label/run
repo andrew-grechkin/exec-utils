@@ -1,0 +1,23 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export MEMOIZE_DIR=$(mktemp -d)
+trap 'rm -rf "$MEMOIZE_DIR"' EXIT
+
+a1=$("$BIN" -l alpha -t 1m -- sh -c 'date +%s.%N')
+b1=$("$BIN" -l beta  -t 1m -- sh -c 'date +%s.%N')
+
+"$BIN" -l alpha -C
+
+# alpha is gone -> re-execute -> different value.
+a2=$("$BIN" -l alpha -t 1m -- sh -c 'date +%s.%N')
+if [[ "$a1" == "$a2" ]]; then
+    echo "alpha cache not cleared: a1=$a1 a2=$a2" >&2
+    exit 1
+fi
+
+# beta is untouched -> cache hit -> same value.
+b2=$("$BIN" -l beta -t 1m -- sh -c 'date +%s.%N')
+if [[ "$b1" != "$b2" ]]; then
+    echo "beta cache was wrongly cleared: b1=$b1 b2=$b2" >&2
+    exit 1
+fi

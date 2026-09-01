@@ -1,0 +1,3 @@
+Two -w callers on the same label serialize: the second blocks until the first releases. Verified by wall-clock (sum
+of two 300ms holds should be >= 500ms, well above their individual runtime) and by both callers eventually running
+exactly once. Order between two concurrent callers is not guaranteed.

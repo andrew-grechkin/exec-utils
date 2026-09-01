@@ -1,0 +1,23 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export MEMOIZE_DIR=$(mktemp -d)
+export MEMOIZE_TTL=200ms
+trap 'rm -rf "$MEMOIZE_DIR"' EXIT
+
+# No -t: MEMOIZE_TTL applies -> 200ms, so 500ms sleep expires cache.
+first=$("$BIN" -- sh -c 'date +%s.%N')
+sleep 0.5
+second=$("$BIN" -- sh -c 'date +%s.%N')
+if [[ "$first" == "$second" ]]; then
+    echo "MEMOIZE_TTL=200ms not honored: both=$first" >&2
+    exit 1
+fi
+
+# -t override: force a long TTL, verify second call hits despite 500ms sleep.
+third=$("$BIN" -t 1m -l long -- sh -c 'date +%s.%N')
+sleep 0.5
+fourth=$("$BIN" -t 1m -l long -- sh -c 'date +%s.%N')
+if [[ "$third" != "$fourth" ]]; then
+    echo "-t did not override MEMOIZE_TTL: third=$third fourth=$fourth" >&2
+    exit 1
+fi

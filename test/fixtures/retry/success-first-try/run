@@ -1,0 +1,10 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+start=$EPOCHREALTIME
+"$BIN" -n 5 -d 10s -- true </dev/null
+elapsed=$(perl -E 'say sprintf "%.3f", $ARGV[0] - $ARGV[1]' "$EPOCHREALTIME" "$start")
+
+# Should return quickly (well under 10s = the delay we'd wait on failure). 3s bound handles parallel fixture load.
+if perl -E 'exit !($ARGV[0] > 3)' "$elapsed"; then
+    echo "took ${elapsed}s; expected << 3s (no failure -> no delay)" >&2
+    exit 1
+fi

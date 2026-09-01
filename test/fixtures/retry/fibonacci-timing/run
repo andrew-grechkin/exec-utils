@@ -1,0 +1,19 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+# 5 failing attempts, base 100ms, fibonacci:
+#   after attempt 1: sleep fib(1)*d = 100ms
+#   after attempt 2: sleep fib(2)*d = 100ms
+#   after attempt 3: sleep fib(3)*d = 200ms
+#   after attempt 4: sleep fib(4)*d = 300ms
+#   attempt 5 fails -> no sleep after (last attempt)
+# Total sleep = 700ms. Expect elapsed in the ballpark of 0.7s.
+
+start=$EPOCHREALTIME
+"$BIN" -n 5 -d 100ms -b fib -- false </dev/null || true
+elapsed=$(perl -E 'say sprintf "%.3f", $ARGV[0] - $ARGV[1]' "$EPOCHREALTIME" "$start")
+
+# Accept anywhere from 0.6s to 3s (generous for parallel fixture load).
+if perl -E 'exit !($ARGV[0] < 0.6 || $ARGV[0] > 3)' "$elapsed"; then
+    echo "fibonacci timing off: ${elapsed}s (expected ~0.7s, allowed 0.6..3)" >&2
+    exit 1
+fi

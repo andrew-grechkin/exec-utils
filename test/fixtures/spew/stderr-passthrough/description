@@ -1,0 +1,1 @@
+Child's stderr flows through spew to the caller unchanged.

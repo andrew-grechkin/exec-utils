@@ -1,0 +1,39 @@
+Usage: spew [OPTIONS] [--] COMMAND [COMMAND ARGS...]
+
+Serialize output for parallel processes
+
+Execute COMMAND, capture COMMAND's STDOUT into an in-memory buffer,
+then acquire an exclusive advisory lock (flock) on the resolved target of
+STDOUT (a tty or regular file) ONLY to emit the captured bytes.
+Parallel spew instances therefore run their COMMANDs concurrently,
+only the emission is serialized. Writers sharing the same destination never
+interleave. When STDOUT is a pipe or the target cannot be resolved,
+the lock falls back to the spew binary so writers still serialize against
+each other.
+STDERR streams through unchanged (atomicity is a STDOUT contract).
+
+Options:
+  -h, --help        Display help message
+      --version     Display version information (tip: spew --version | jq -r .Version)
+  --                Stop parsing options and treat arguments after as COMMAND
+
+Exit codes:
+  0                 Wrapped command exited 0
+  <child exit>      Wrapped command's non-zero exit (propagated)
+  125               Bad flags, buffering stdin, acquiring flock, or emit
+  126               Wrapped command found but couldn't be invoked
+  127               Wrapped command not found
+
+Examples:
+  # Fetch 8 pages from an API in parallel, but process and print the
+  # results serially to avoid garbled JSON output. Each request stamps
+  # its client-side send time in the URL as `?t=<epoch.ns>`; httpbin
+  # echoes it back in `.args.t` so you can see all 8 launched together.
+  seq 1 8 | time xargs -P0 -rn1 bash -c \
+      'curl -sSL "https://httpbin.org/delay/1?w=$0&t=$(date +%s.%N)" \
+       | spew jq -CS'
+
+  # Same but with spew wrapping curl directly (curl's stdout is buffered
+  # by spew, emitted atomically):
+  seq 1 8 | time xargs -P0 -rn1 bash -c \
+      'spew curl -sSL "https://httpbin.org/delay/1?w=$0&t=$(date +%s.%N)"'

@@ -1,0 +1,11 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export ONCE_DIR=$(mktemp -d)
+trap 'rm -rf "$ONCE_DIR"' EXIT
+
+rc=0
+"$BIN" -- sh -c 'exit 42' </dev/null >/dev/null 2>&1 || rc=$?
+if [[ "$rc" != "42" ]]; then
+    echo "expected exit 42, got $rc" >&2
+    exit 1
+fi

@@ -1,0 +1,4 @@
+-c accumulates across occurrences AND splits on commas within each. All three forms produce the same retry set:
+  -c 0,2       -> {0, 2}
+  -c 0 -c 2    -> {0, 2}
+  -c 0,1 -c 2  -> {0, 1, 2}

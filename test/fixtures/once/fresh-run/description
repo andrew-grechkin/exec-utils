@@ -1,0 +1,1 @@
+No prior holder: -w acquires immediately and runs the command. Exit 0. Verifies the "happy path" doesn't stall.

@@ -1,0 +1,2 @@
+-p TEMPLATE takes precedence over -t/-w and format tokens are honored:
+%p (PID), %n (per-stream counter), %% (literal %).

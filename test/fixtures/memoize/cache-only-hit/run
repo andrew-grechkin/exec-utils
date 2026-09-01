@@ -1,0 +1,14 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export MEMOIZE_DIR=$(mktemp -d)
+trap 'rm -rf "$MEMOIZE_DIR"' EXIT
+
+# Prime the cache.
+first=$("$BIN" -t 1m -- sh -c 'date +%s.%N')
+
+# -c must now hit and return the same content.
+cached=$("$BIN" -c -t 1m -- sh -c 'date +%s.%N')
+if [[ "$first" != "$cached" ]]; then
+    echo "-c did not return cached content: first=$first cached=$cached" >&2
+    exit 1
+fi

@@ -1,0 +1,19 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export RATELIMIT_DIR=$(mktemp -d)
+mark=$(mktemp)
+trap 'rm -rf "$RATELIMIT_DIR" "$mark"' EXIT
+
+"$BIN" -f -i 10s -l demo -- sh -c 'printf x >> "$1"' _ "$mark"
+rc=0
+"$BIN" -f -i 10s -l demo -- sh -c 'printf x >> "$1"' _ "$mark" 2>/dev/null || rc=$?
+
+if [[ "$rc" != "125" ]]; then
+    echo "expected exit 125 on cooldown fail, got $rc" >&2
+    exit 1
+fi
+
+if [[ "$(wc -c < "$mark")" != "1" ]]; then
+    echo "second call ran the command despite -f (mark size $(wc -c < "$mark"))" >&2
+    exit 1
+fi

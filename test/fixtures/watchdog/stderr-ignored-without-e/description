@@ -1,0 +1,2 @@
+Without -e, STDERR bytes do NOT reset the idle timer. Same child pattern as stderr-counts-with-e but watchdog DOES
+fire because only stdout activity is watched.

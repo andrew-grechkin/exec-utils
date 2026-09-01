@@ -1,0 +1,19 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+start=$EPOCHREALTIME
+rc=0
+# Child sets trap BEFORE writing "ready" -- once "ready" hits stdout, watchdog resets its idle clock, so the idle
+# bound only starts counting after bash has installed SIG_IGN. Without this synchronization, under parallel fixture
+# load bash startup could exceed -i and TERM would arrive with default disposition, ending escalation before KILL.
+"$BIN" -i 1s -g 500ms -- bash -c 'trap "" TERM; echo ready; sleep 5' </dev/null >/dev/null 2>&1 || rc=$?
+elapsed=$(perl -E 'say sprintf "%.3f", $ARGV[0] - $ARGV[1]' "$EPOCHREALTIME" "$start")
+
+if [[ "$rc" != "137" ]]; then
+    echo "expected exit 137 (128 + SIGKILL), got $rc" >&2
+    exit 1
+fi
+# 1s idle + 500ms grace = ~1.5s. 5s bound handles parallel fixture scheduler stalls while still catching a real
+# "escalation stuck" regression (which would be many seconds beyond this).
+if perl -E 'exit !($ARGV[0] > 5)' "$elapsed"; then
+    echo "escalation ran slow: took ${elapsed}s (expected << 5s)" >&2
+    exit 1
+fi

@@ -1,0 +1,2 @@
+-t fires, retry sends SIGTERM to the child's process group, sleep responds to the default TERM disposition and dies.
+retry propagates the shell-convention exit code 143 (128 + SIGTERM).

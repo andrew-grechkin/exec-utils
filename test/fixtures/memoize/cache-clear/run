@@ -1,0 +1,17 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export MEMOIZE_DIR=$(mktemp -d)
+trap 'rm -rf "$MEMOIZE_DIR"' EXIT
+
+first=$("$BIN" -t 1m -- sh -c 'date +%s.%N')
+"$BIN" -C
+if [[ -d "$MEMOIZE_DIR" ]] && [[ -n "$(ls -A "$MEMOIZE_DIR" 2>/dev/null)" ]]; then
+    echo "cache dir not empty after -C: $(ls -A "$MEMOIZE_DIR")" >&2
+    exit 1
+fi
+
+second=$("$BIN" -t 1m -- sh -c 'date +%s.%N')
+if [[ "$first" == "$second" ]]; then
+    echo "expected cache to be re-populated after clear; first=$first second=$second" >&2
+    exit 1
+fi

@@ -1,0 +1,21 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export MEMOIZE_DIR=$(mktemp -d)
+trap 'rm -rf "$MEMOIZE_DIR"' EXIT
+
+# TTL 2s with -s. Read again at 1.2s (bumps mtime), then again at 1.2s
+# more (2.4s from initial create, past TTL, but only 1.2s from last read).
+# All three reads must return the same cached content. Margins are wide
+# enough to survive ~800ms of memoize/bash/scheduler overhead per call under
+# the parallel fixture harness -- without sliding, the third read at 2.4s
+# from prime would exceed the 2s TTL and produce a different timestamp.
+first=$("$BIN" -s -t 2s -- sh -c 'date +%s.%N')
+sleep 1.2
+second=$("$BIN" -s -t 2s -- sh -c 'date +%s.%N')
+sleep 1.2
+third=$("$BIN" -s -t 2s -- sh -c 'date +%s.%N')
+
+if [[ "$first" != "$second" ]] || [[ "$second" != "$third" ]]; then
+    echo "sliding failed: first=$first second=$second third=$third" >&2
+    exit 1
+fi

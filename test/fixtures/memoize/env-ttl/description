@@ -1,0 +1,1 @@
+MEMOIZE_TTL sets the default TTL when -t is not passed. -t overrides it.

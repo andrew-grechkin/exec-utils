@@ -1,0 +1,2 @@
+Zero-byte cache is treated as a MISS by default (command re-runs); -e treats it as a HIT. Verified by a side-effect
+counter.

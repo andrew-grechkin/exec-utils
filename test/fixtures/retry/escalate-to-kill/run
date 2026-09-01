@@ -1,0 +1,19 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+start=$EPOCHREALTIME
+rc=0
+# -t 1s (not e.g. 100ms) so bash certainly finishes executing `trap "" TERM` before the per-attempt timer fires --
+# otherwise under parallel fixture load bash startup can exceed the timer and TERM arrives with default disposition,
+# killing bash before the escalation can prove it reached SIGKILL.
+"$BIN" -n 1 -t 1s -- bash -c 'trap "" TERM; sleep 5' </dev/null >/dev/null 2>&1 || rc=$?
+elapsed=$(perl -E 'say sprintf "%.3f", $ARGV[0] - $ARGV[1]' "$EPOCHREALTIME" "$start")
+
+if [[ "$rc" != "137" ]]; then
+    echo "expected exit 137 (128 + SIGKILL), got $rc" >&2
+    exit 1
+fi
+# 1s timeout + 500ms grace = ~1.5s. 5s bound handles parallel fixture scheduler stalls while still catching a real
+# "escalation stuck" regression (which would be many seconds beyond this).
+if perl -E 'exit !($ARGV[0] > 5)' "$elapsed"; then
+    echo "escalation ran slow: took ${elapsed}s (expected << 5s)" >&2
+    exit 1
+fi

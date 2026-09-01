@@ -1,0 +1,1 @@
+After the TTL elapses, the wrapped command re-runs and produces fresh output.

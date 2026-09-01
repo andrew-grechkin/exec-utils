@@ -1,0 +1,14 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+mark=$(mktemp)
+trap 'rm -f "$mark"' EXIT
+
+# Payload always exits 0 and increments a counter. With -c 0 and -n 5,
+# retry should loop 5 times all-succeeding and exit 0.
+"$BIN" -n 5 -c 0 -d 20ms -- sh -c 'printf x >> "$1"; exit 0' _ "$mark" </dev/null
+
+count=$(wc -c < "$mark")
+if [[ "$count" != "5" ]]; then
+    echo "expected 5 attempts (all passing), saw $count" >&2
+    exit 1
+fi

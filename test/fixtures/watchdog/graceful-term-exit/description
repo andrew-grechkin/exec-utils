@@ -1,0 +1,2 @@
+Idle timer fires, watchdog sends SIGTERM to the process group, sleep responds and dies. Exit is 143 (128 + SIGTERM),
+proving graceful termination reaches the caller as a shell-convention signal code, not 255.

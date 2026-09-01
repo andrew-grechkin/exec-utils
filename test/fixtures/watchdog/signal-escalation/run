@@ -1,0 +1,22 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+err=$(mktemp)
+trap 'rm -f "$err"' EXIT
+
+# Child sets trap "" TERM FIRST, then writes "ready" to stdout, then sleeps. The stdout write resets watchdog's idle
+# clock, so the 1s idle window only starts counting from AFTER bash has finished parsing and installing the trap.
+# This eliminates the pre-existing race where under parallel-fixture load, bash startup could exceed the idle bound
+# and TERM would arrive before the trap was installed (child would then die on default SIGTERM disposition, done fires,
+# escalation bails without ever reaching KILL).
+"$BIN" -v -i 1s -g 500ms -s TERM -- bash -c 'trap "" TERM; echo ready; sleep 10' </dev/null >/dev/null 2> "$err" || true
+
+grep -q 'sent terminated to process group' "$err" || {
+    echo "no TERM log line; stderr was:" >&2
+    cat "$err" >&2
+    exit 1
+}
+grep -q 'sent killed to process group' "$err" || {
+    echo "no KILL log line (escalation should reach KILL); stderr was:" >&2
+    cat "$err" >&2
+    exit 1
+}

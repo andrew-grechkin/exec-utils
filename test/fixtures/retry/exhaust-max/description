@@ -1,0 +1,2 @@
+Command that always fails: retry exhausts -n attempts and propagates the
+last exit code.

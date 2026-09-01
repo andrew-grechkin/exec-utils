@@ -1,0 +1,11 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export MEMOIZE_DIR=$(mktemp -d)
+trap 'rm -rf "$MEMOIZE_DIR"' EXIT
+
+rc=0
+"$BIN" -- this-command-does-not-exist-any-9x8x7 </dev/null >/dev/null 2>&1 || rc=$?
+if [[ "$rc" != "127" ]]; then
+    echo "expected 127 (ExitNotFound), got $rc" >&2
+    exit 1
+fi

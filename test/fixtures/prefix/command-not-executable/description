@@ -1,0 +1,1 @@
+Wrapping a file that exists but is not executable exits with 126 (ExitCannotInvoke), matching timeout(1) semantics.

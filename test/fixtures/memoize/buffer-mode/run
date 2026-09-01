@@ -1,0 +1,12 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export MEMOIZE_DIR=$(mktemp -d)
+trap 'rm -rf "$MEMOIZE_DIR"' EXIT
+
+out1=$("$BIN" -b -t 1m -- printf 'hello world')
+out2=$("$BIN" -b -t 1m -- printf 'hello world')
+
+if [[ "$out1" != "hello world" ]] || [[ "$out2" != "hello world" ]]; then
+    echo "buffered output mismatch: out1='$out1' out2='$out2'" >&2
+    exit 1
+fi

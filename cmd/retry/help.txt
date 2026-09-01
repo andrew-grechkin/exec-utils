@@ -1,0 +1,92 @@
+Usage: retry [OPTIONS] [--] COMMAND [COMMAND ARGS...]
+
+Retry a failing COMMAND until it succeeds or a limit is reached
+
+With no options retry polls every 2 seconds until COMMAND exits 0 -- same
+default cadence as watch(1). Bound the retries with -n or -T if you don't
+want an unlimited loop and pick a growing backoff with -b if the failure
+condition is worth being polite about.
+
+STDIN is fully buffered on entry (like memoize) and replayed to every
+attempt, so pipelines like `printf hello | retry -- cmd` work as expected.
+
+Options:
+  -n, --max N            Max attempts total (default: 0 -- unlimited)
+                         A finite N counts the first try
+  -d, --delay DURATION   Base delay between attempts (default: 2s)
+                         Accepts "500ms", "1h30min", "1day", etc
+  -b, --backoff SPEC     A number (multiplier for exponential; 1 means
+                         fixed) OR a strategy name: fib | linear | fixed
+                         (default: fixed)
+                           fixed     delay each time
+                           linear    d, 2d, 3d, 4d, ...
+                           <number>N d, Nd, N^2 d, ... (exponential)
+                           fib       d, d, 2d, 3d, 5d, 8d, ...
+  -m, --max-delay DUR    Cap on the computed delay (default: 30s)
+  -j, --jitter FRAC      Random jitter added to each delay, 0.0-1.0
+                         (default: 0). Anti-thundering-herd
+  -t, --timeout DUR      Per-attempt timeout. When it fires, retry walks the
+                         --signal escalation on the child's process group,
+                         giving well-behaved children a chance to clean up
+                         before SIGKILL
+  -T, --total-timeout D  Total wall-clock cap across all attempts
+  -s, --signal SIG       Escalation used to kill an attempt on --timeout.
+                         Repeatable AND comma-splittable, e.g. "-s TERM,INT
+                         -s KILL". Sent in order with a grace window between
+                         each (min(--timeout/2, 5s)). KILL is auto-appended
+                         if not in the list. Names accepted case-insensitively
+                         with or without SIG prefix. Default: TERM,KILL
+  -c, --code CODE,...    Only retry on these exit codes; other exits are
+                         terminal. Default (empty): retry any non-zero,
+                         stop on success. Include 0 to invert the loop:
+                         retry while succeeding, stop on any failure
+                         (flake detection)
+  -v, --verbose          Log each attempt to STDERR
+
+  -h, --help             Display help message
+      --version          Display version information (tip: retry --version | jq -r .Version)
+  --                     Stop parsing options and treat arguments after as COMMAND
+
+Environment:
+  RETRY_MAX              Default value for -n / --max
+  RETRY_DELAY            Default value for -d / --delay
+  RETRY_BACKOFF          Default value for -b / --backoff
+
+Exit codes:
+  0                      Loop ended cleanly. Default mode: some attempt
+                         succeeded. Flake mode (-c 0): -n exhausted with
+                         all attempts passing (no flake found)
+  <child exit>           The exit code that terminated the loop: exhausted
+                         -n with all attempts still retryable, or the
+                         first out-of-set code under -c
+  128 + signum           Last attempt died to a signal (bash convention).
+                         143 = SIGTERM (cleaned up on our escalation),
+                         137 = SIGKILL (ignored TERM, forced dead)
+  124                    Total wall-clock timeout reached (-T)
+  125                    Bad flags, invalid --delay / --backoff / --code,
+                         or STDIN read error
+  126                    Wrapped command found but couldn't be invoked
+  127                    Wrapped command not found
+
+Examples:
+  # poll every 2s until success (defaults)
+  prefix -s -- retry -v -- pgrep -x my-daemon
+
+  # 5 attempts, exponential backoff (2x), with jitter
+  prefix -s -- retry -vn 5 -b 2 -j 0.2 -- curl -fsSL https://httpbin.org/status/500
+
+  # fibonacci backoff, 500ms base
+  prefix -s -- retry -vb fib -d 500ms -- curl -fsSL https://httpbin.org/status/404
+
+  # only retry on transient exit codes
+  retry -c 1,2 -- some-cmd
+
+  # flake detection: keep running while it passes, stop on first failure.
+  # Cap at 100 tries; returns the failing exit code, or 0 if all 100 passed.
+  retry -n 100 -c 0 -d 0s -- ./flaky-test
+
+  # bound by total wall-clock
+  retry -T 5m -- wait-for-service
+
+  # compose: retry inside memoize -> cache the eventual success
+  memoize -t 1h -- retry -n 5 -b 2 -- expensive-lookup foo

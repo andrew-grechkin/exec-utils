@@ -1,0 +1,2 @@
+A trap "" TERM child (SIG_IGN inherited by sleep across exec) survives the first signal. Watchdog waits --grace,
+then escalates to SIGKILL. Exit is 137 (128 + SIGKILL), pinning the shell-convention signal-code contract.

@@ -1,0 +1,23 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+mark=$(mktemp)
+trap 'rm -f "$mark"' EXIT
+
+# Payload appends a byte per invocation and fails on the 4th call:
+#   1st..3rd -> exit 0 (loop continues under -c 0)
+#   4th      -> exit 42 (loop stops)
+payload='printf x >> "$1"; test $(wc -c < "$1") -lt 4 || exit 42'
+
+rc=0
+"$BIN" -n 100 -c 0 -d 20ms -- sh -c "$payload" _ "$mark" </dev/null >/dev/null 2>&1 || rc=$?
+
+if [[ "$rc" != "42" ]]; then
+    echo "expected exit 42 (payload's failure code), got $rc" >&2
+    exit 1
+fi
+
+count=$(wc -c < "$mark")
+if [[ "$count" != "4" ]]; then
+    echo "expected exactly 4 attempts, saw $count" >&2
+    exit 1
+fi

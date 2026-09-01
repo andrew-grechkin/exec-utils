@@ -1,0 +1,45 @@
+Usage: once [OPTIONS] [--] COMMAND [COMMAND ARGS...]
+
+Serialize COMMAND across all callers sharing the same label. Ergonomic wrapper around flock(2): opens a lockfile
+under --dir named by --label (or a sha256 of pwd + argv), takes an exclusive lock, runs COMMAND while holding it,
+releases on exit.
+
+Distinct primitive from spew: once gates COMMAND EXECUTION; spew gates STDOUT WRITES. Both use flock under the hood
+on different targets.
+
+Options:
+  -l, --label LABEL      Lock namespace (default: sha256 of pwd + argv). Different LABELs never conflict; same LABEL
+                         serializes across processes, hosts sharing the dir, etc
+  -d, --dir PATH         Lock dir (default: $ONCE_DIR, $XDG_RUNTIME_DIR/once, or /tmp/once). Created if missing
+  -w, --wait             Block until lock is free, then run (default)
+  -s, --skip             Exit 0 without running if lock is held
+  -f, --fail             Exit 125 without running if lock is held
+  -v, --verbose          Log lock decisions to STDERR
+
+  -h, --help             Display help message
+      --version          Display version information (tip: once --version | jq -r .Version)
+  --                     Stop parsing options and treat arguments after as COMMAND
+
+Environment:
+  ONCE_DIR               Default value for -d / --dir
+
+Exit codes (coreutils timeout(1) convention):
+  0                      COMMAND exited 0 on its own; or --skip fired because the lock was held
+  <child exit>           Wrapped command's exit (propagated)
+  128 + signum           Child died to a signal (bash convention: 143 = SIGTERM, 137 = SIGKILL)
+  125                    Bad flags, --fail fired because the lock was held, or flock/open failure
+  126                    Wrapped command found but couldn't be invoked
+  127                    Wrapped command not found
+
+Examples:
+  # Serialize a deploy across concurrent CI runs on the same host
+  once -l deploy -- ./deploy.sh
+
+  # Cron entry that skips if the previous run is still going
+  * * * * * once -s -l backup -- rsync -a src/ dst/
+
+  # Fail loudly if held (caller expects to be the only one)
+  once -f -l migration -- ./migrate.sh
+
+  # Combine with ratelimit: at-most-once serialized AND rate-bounded
+  once -s -l job -- ratelimit -s -i 6h -l job -- ./job.sh

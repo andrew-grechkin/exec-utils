@@ -1,0 +1,4 @@
+-c 0 (flake-detection mode): retry loops WHILE the child exits 0 and
+stops on any non-zero. Verified by running a script that succeeds 3
+times then fails; retry should stop at attempt 4 and return the
+failure exit code.

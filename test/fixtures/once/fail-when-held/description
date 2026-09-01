@@ -1,0 +1,2 @@
+-f (fail) mode: if the lock is held, exit 125 without running the command. Complements skip mode when the caller
+expects to be the only one.

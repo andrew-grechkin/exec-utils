@@ -1,0 +1,8 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+# %t is unix epoch (positive integer, 10 digits for now); %p is a pid (positive int).
+out=$(printf 'x\n' | "$BIN" --delimiter ' ' -p '%t %p' -- cat)
+if ! [[ "$out" =~ ^[0-9]{10}\ [0-9]+\ x$ ]]; then
+    echo "expected 'EPOCH PID x' shape, got '$out'" >&2
+    exit 1
+fi

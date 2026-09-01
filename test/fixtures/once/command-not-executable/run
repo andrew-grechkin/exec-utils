@@ -1,0 +1,13 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export ONCE_DIR=$(mktemp -d)
+notexec=$(mktemp)
+echo '#!/bin/sh' > "$notexec"; chmod -x "$notexec"
+trap 'rm -rf "$ONCE_DIR" "$notexec"' EXIT
+
+rc=0
+"$BIN" -- "$notexec" </dev/null >/dev/null 2>&1 || rc=$?
+if [[ "$rc" != "126" ]]; then
+    echo "expected 126 (ExitCannotInvoke), got $rc" >&2
+    exit 1
+fi

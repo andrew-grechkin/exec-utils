@@ -1,0 +1,20 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export MEMOIZE_DIR=$(mktemp -d)
+d1=$(mktemp -d)
+d2=$(mktemp -d)
+trap 'rm -rf "$MEMOIZE_DIR" "$d1" "$d2"' EXIT
+
+a=$(cd "$d1" && "$BIN" -w -t 1m -- sh -c 'date +%s.%N')
+b=$(cd "$d2" && "$BIN" -w -t 1m -- sh -c 'date +%s.%N')
+a2=$(cd "$d1" && "$BIN" -w -t 1m -- sh -c 'date +%s.%N')
+
+if [[ "$a" == "$b" ]]; then
+    echo "-w did not scope by pwd: both directories produced $a" >&2
+    exit 1
+fi
+
+if [[ "$a" != "$a2" ]]; then
+    echo "-w did not hit cache from same pwd: a=$a a2=$a2" >&2
+    exit 1
+fi

@@ -1,0 +1,3 @@
+A child that ignores SIGTERM (bash trap "" TERM, inherited by sleep as SIG_IGN across exec) survives the first
+signal. After grace period, retry escalates to SIGKILL, which is uncatchable. retry propagates 137 (128 +
+SIGKILL). Wall time bound proves grace didn't blow up.

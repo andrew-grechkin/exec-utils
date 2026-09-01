@@ -1,0 +1,3 @@
+Flag parsing stops at first positional (SetInterspersed(false)): -v after the
+child command name reaches the child, NOT spew itself. If spew hijacked -v,
+stdout would be the version JSON instead of grep's filtered lines.

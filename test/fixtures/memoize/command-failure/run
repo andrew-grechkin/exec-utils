@@ -1,0 +1,20 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export MEMOIZE_DIR=$(mktemp -d)
+trap 'rm -rf "$MEMOIZE_DIR"' EXIT
+
+rc=0
+"$BIN" -t 1m -- sh -c 'echo halfway; exit 42' >/dev/null 2>&1 || rc=$?
+
+if [[ "$rc" != "42" ]]; then
+    echo "expected exit 42 from wrapped command, got $rc" >&2
+    exit 1
+fi
+
+# No .stdout file may exist under MEMOIZE_DIR: cache is only committed on
+# successful exit. (A leftover .memoize temp is also disallowed.)
+if find "$MEMOIZE_DIR" -type f -name '*.stdout' -o -name '*.memoize' | grep -q .; then
+    echo "cache/temp files left behind after failure:" >&2
+    find "$MEMOIZE_DIR" -type f >&2
+    exit 1
+fi

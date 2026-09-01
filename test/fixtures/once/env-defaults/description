@@ -1,0 +1,1 @@
+ONCE_DIR is honored as the default lock directory when --dir is not passed.

@@ -1,0 +1,23 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+tmp=$(mktemp -u)
+trap 'rm -f "$tmp"' EXIT
+
+# First call: cache miss -> command runs, output stored at $tmp verbatim.
+out1=$("$BIN" -f "$tmp" -t 1m -- printf 'captured')
+if [[ "$out1" != "captured" ]]; then
+    echo "streamed output mismatch: '$out1'" >&2
+    exit 1
+fi
+
+if [[ ! -f "$tmp" ]] || [[ "$(cat "$tmp")" != "captured" ]]; then
+    echo "cache file at $tmp missing or wrong content" >&2
+    exit 1
+fi
+
+# Second call with a DIFFERENT command but same -f should still serve $tmp.
+out2=$("$BIN" -f "$tmp" -t 1m -- printf 'different')
+if [[ "$out2" != "captured" ]]; then
+    echo "second call did not return cached content: '$out2'" >&2
+    exit 1
+fi

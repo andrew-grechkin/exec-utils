@@ -1,0 +1,13 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export MEMOIZE_DIR=$(mktemp -d)
+trap 'rm -rf "$MEMOIZE_DIR"' EXIT
+
+first=$("$BIN" -t 200ms -- sh -c 'date +%s.%N')
+sleep 0.5
+second=$("$BIN" -t 200ms -- sh -c 'date +%s.%N')
+
+if [[ "$first" == "$second" ]]; then
+    echo "cache should have expired after 500ms with TTL=200ms; both=$first" >&2
+    exit 1
+fi

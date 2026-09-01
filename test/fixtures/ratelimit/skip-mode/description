@@ -1,0 +1,2 @@
+-s (skip) mode: a call arriving during the cooldown exits 0 without running the command. Verified by counting the
+side-effect mark: two back-to-back calls should record exactly one invocation.

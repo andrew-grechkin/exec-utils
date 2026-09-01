@@ -1,0 +1,1 @@
+-C removes the cache dir. A subsequent run re-executes the wrapped command.

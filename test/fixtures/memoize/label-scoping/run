@@ -1,0 +1,18 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export MEMOIZE_DIR=$(mktemp -d)
+trap 'rm -rf "$MEMOIZE_DIR"' EXIT
+
+a=$("$BIN" -l alpha -t 1m -- sh -c 'date +%s.%N')
+b=$("$BIN" -l beta  -t 1m -- sh -c 'date +%s.%N')
+a2=$("$BIN" -l alpha -t 1m -- sh -c 'date +%s.%N')
+
+if [[ "$a" == "$b" ]]; then
+    echo "labels alpha and beta shared a cache: both=$a" >&2
+    exit 1
+fi
+
+if [[ "$a" != "$a2" ]]; then
+    echo "same-label second call did not hit cache: a=$a a2=$a2" >&2
+    exit 1
+fi

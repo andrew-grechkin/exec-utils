@@ -1,0 +1,3 @@
+-c CODE,... means "retry ONLY on these codes; other non-zero exits are
+terminal on the first failure". Verified two ways: an in-set failure
+retries, an out-of-set failure aborts immediately.

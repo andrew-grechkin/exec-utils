@@ -1,0 +1,2 @@
+-s prepends "STDOUT| " to STDOUT lines and "STDERR| " to STDERR lines (both then carry the base prefix). Implies
+--also-stderr.

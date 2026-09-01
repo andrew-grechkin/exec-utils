@@ -1,0 +1,61 @@
+USAGE:
+  memoize [OPTIONS] [--] COMMAND [COMMAND ARGS...]
+
+DESCRIPTION:
+  Execute a command and cache its stdout. Subsequent invocations with the same
+  arguments return the cached output immediately without re-running the command.
+
+  The cache lives under $MEMOIZE_DIR (default: $XDG_RUNTIME_DIR/memoize, or
+  /tmp/memoize when XDG_RUNTIME_DIR is unset).
+  The cache is only written when the command exits 0; a failing command leaves
+  any prior cache intact.
+  The wrapped command's exit code is propagated to the caller.
+
+NOTE:
+  In streaming mode (default), COMMAND's stdout is a pipe, not a tty, so
+  libc-based programs switch to block buffering and output appears in
+  chunks. For line-flushed output, tell COMMAND itself to line-buffer:
+  "memoize -- stdbuf -oL ...", "memoize -- python3 -u ...",
+  "memoize -- grep --line-buffered ...", etc. --buffer mode does not
+  need this (nothing is emitted until the command exits anyway).
+
+OPTIONS:
+  -b, --buffer         Buffer output into the cache first, then print it
+  -C, --clear          Clear the cache dir (with -l: only that label's
+                       subdir). COMMAND is ignored
+  -c, --cache-only     Exit 2 if no fresh cache exists (do not run COMMAND)
+  -e, --empty          Treat a zero-byte cache as a hit (default: miss)
+  -f, --file FILE      Use FILE as the cache file (-l is ignored)
+  -l, --label LABEL    Distinguish commands if all other parameters are similar
+  -s, --slide          Sliding TTL: bump cache mtime on hit
+  -t, --ttl DURATION   Cache TTL. Default: 24 hours. Accepts "5s", "1h30min",
+                       "500ms", "2d", etc
+  -v, --verbose        Increase verbosity
+  -w, --workdir        Cache depends on current workdir
+
+  -h, --help           Display help message
+      --version        Display version information (tip: memoize --version | jq -r .Version)
+  --                   Stop parsing options and treat arguments after as COMMAND
+
+ENVIRONMENT:
+  MEMOIZE_DIR          Cache directory (overrides default)
+  MEMOIZE_FILENAME     Explicit cache filename (bypasses hash)
+  MEMOIZE_TTL          Cache TTL (overridden by -t/--ttl)
+
+EXIT CODES:
+  0                    Cache hit, or wrapped command succeeded and was cached
+  <child exit>         Wrapped command's non-zero exit (cache is NOT written)
+  125                  Bad arguments, cache I/O error or cache-only miss
+  126                  Wrapped command found but couldn't be invoked
+  127                  Wrapped command not found
+
+EXAMPLES:
+  # Cache a slow command output for 5 minutes
+  memoize -t 5m -- find /usr/lib/modules -type f -exec sha256sum {} +
+
+  # Scope by label, clear only that label
+  memoize -l my-report -- ./slow-report
+  memoize -l my-report -C
+
+  # Fail fast if no cache exists (don't run the command)
+  memoize -c -- ./expensive-op

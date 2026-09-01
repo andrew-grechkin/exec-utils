@@ -1,0 +1,3 @@
+20 workers write 500 lines each to a SHARED output file. Without flock the
+writes would interleave; with flock each worker's block must appear as one
+contiguous run.

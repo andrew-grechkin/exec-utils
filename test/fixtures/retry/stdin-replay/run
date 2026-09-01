@@ -1,0 +1,14 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+out=$(mktemp)
+trap 'rm -f "$out"' EXIT
+
+# Each attempt cats its stdin to $out, then fails. After 3 attempts we
+# expect the payload "hello\n" to appear three times.
+printf 'hello\n' | "$BIN" -n 3 -d 20ms -- sh -c 'cat >> "$1"; exit 1' _ "$out" > /dev/null 2>&1 || true
+
+count=$(grep -c '^hello$' "$out")
+if [[ "$count" != "3" ]]; then
+    echo "expected 'hello' 3 times, got $count" >&2
+    cat "$out" >&2
+    exit 1
+fi

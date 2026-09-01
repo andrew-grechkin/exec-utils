@@ -1,0 +1,2 @@
+Different -l labels get independent cooldowns. Two calls under the same label queue; two calls under different labels
+both run immediately.

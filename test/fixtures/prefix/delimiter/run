@@ -1,0 +1,7 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+out=$(printf 'hello\n' | "$BIN" -p '[X]' -d ' :: ' -- cat)
+if [[ "$out" != "[X] :: hello" ]]; then
+    echo "expected '[X] :: hello', got '$out'" >&2
+    exit 1
+fi

@@ -1,0 +1,46 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+# The runner invokes this script with $BIN set to the util's binary path.
+# Exit 0 on pass; any non-zero on fail. Diagnostics on stderr.
+
+out=$(mktemp)
+trap 'rm -f "$out"' EXIT
+: > "$out"
+
+export SPEW_BIN="$BIN" SPEW_OUT="$out"
+seq 1 20 | xargs -P20 -rn1 bash -c '
+    id=$1
+    seq 1 500 | perl -pe "s/^/$id-/" | "$SPEW_BIN" cat >> "$SPEW_OUT"
+' _
+
+# Validate: each of the 20 worker ids must appear as exactly one contiguous
+# run of 500 lines. If any worker's block is split, output was interleaved.
+perl -F- -anE '
+    BEGIN { $W = 20; $N = 500; $bad = 0 }
+    if ($F[0] ne ($prev // "")) {
+        if (defined $prev && $cnt != $N) {
+            say STDERR "worker $prev run length $cnt, want $N";
+            $bad = 1;
+        }
+        if ($seen{$F[0]}) {
+            say STDERR "worker $F[0] was interleaved (appears in multiple runs)";
+            $bad = 1;
+        }
+        $seen{$F[0]} = 1;
+        $prev = $F[0];
+        $cnt = 1;
+        next;
+    }
+    $cnt++;
+    END {
+        if (defined $prev && $cnt != $N) {
+            say STDERR "worker $prev run length $cnt, want $N";
+            $bad = 1;
+        }
+        my $w = scalar keys %seen;
+        if ($w != $W) {
+            say STDERR "distinct workers $w, want $W";
+            $bad = 1;
+        }
+        exit $bad;
+    }
+' "$out"

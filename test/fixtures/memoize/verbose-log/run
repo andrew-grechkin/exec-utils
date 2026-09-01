@@ -1,0 +1,21 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export MEMOIZE_DIR=$(mktemp -d)
+err=$(mktemp)
+trap 'rm -rf "$MEMOIZE_DIR" "$err"' EXIT
+
+# First run: miss - no "fresh cache" log expected.
+"$BIN" -v -t 1m -- echo hello >/dev/null 2> "$err"
+if grep -q 'fresh cache' "$err"; then
+    echo "unexpected 'fresh cache' log on cache miss" >&2
+    cat "$err" >&2
+    exit 1
+fi
+
+# Second run: hit - expect "fresh cache is found with size:" line.
+"$BIN" -v -t 1m -- echo hello >/dev/null 2> "$err"
+if ! grep -q 'fresh cache is found with size:' "$err"; then
+    echo "expected verbose log on cache hit; stderr was:" >&2
+    cat "$err" >&2
+    exit 1
+fi

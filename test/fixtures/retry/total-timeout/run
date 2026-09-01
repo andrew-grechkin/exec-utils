@@ -1,0 +1,19 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+start="$EPOCHREALTIME"
+rc=0
+
+"$BIN" -d 100ms -T 400ms -- false </dev/null || rc=$?
+elapsed=$(perl -E 'say sprintf "%.3f", $ARGV[0] - $ARGV[1]' "$EPOCHREALTIME" "$start")
+
+# On total-timeout retry returns 124 (ExitTimeout), not the last child code.
+if [[ "$rc" != "124" ]]; then
+    echo "expected exit 124 (ExitTimeout), got $rc" >&2
+    exit 1
+fi
+
+# Elapsed must be near 400ms. Allow a wide 0.3..3s window for parallel fixture load.
+if perl -E 'exit !($ARGV[0] > 3 || $ARGV[0] < 0.3)' "$elapsed"; then
+    echo "elapsed ${elapsed}s outside expected 0.3..3s window" >&2
+    exit 1
+fi

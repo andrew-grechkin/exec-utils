@@ -1,0 +1,25 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export ONCE_DIR=$(mktemp -d)
+mark=$(mktemp)
+ready="$ONCE_DIR/holder.ready"
+trap 'kill "$holder" 2>/dev/null || true; wait 2>/dev/null || true; rm -rf "$ONCE_DIR" "$mark"' EXIT
+
+"$BIN" -w -l A -- bash -c 'touch "$1"; sleep 5' _ "$ready" </dev/null >/dev/null 2>&1 &
+holder=$!
+for _ in $(seq 1 500); do
+    [[ -e "$ready" ]] && break
+    sleep 0.01
+done
+
+# Different label B should NOT contend with A's lock; -f should still succeed.
+rc=0
+"$BIN" -f -l B -- sh -c 'printf x > "$1"' _ "$mark" </dev/null >/dev/null 2>&1 || rc=$?
+if [[ "$rc" != "0" ]]; then
+    echo "expected exit 0 (different labels don't contend), got $rc" >&2
+    exit 1
+fi
+if [[ "$(<"$mark")" != "x" ]]; then
+    echo "command did not run under distinct label" >&2
+    exit 1
+fi

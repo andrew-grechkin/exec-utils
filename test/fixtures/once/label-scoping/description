@@ -1,0 +1,2 @@
+Different labels never conflict: two -f (fail-if-held) callers with different labels can both acquire and run
+even when scheduled concurrently.

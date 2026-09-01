@@ -1,0 +1,2 @@
+-T caps total wall-clock across all attempts. Loop exits when the elapsed
+time crosses the limit, regardless of -n.

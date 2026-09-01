@@ -1,0 +1,24 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export RATELIMIT_DIR=$(mktemp -d)
+mark=$(mktemp)
+trap 'rm -rf "$RATELIMIT_DIR" "$mark"' EXIT
+
+# RATELIMIT_INTERVAL=10s: -s should skip the second call.
+: > "$mark"
+RATELIMIT_INTERVAL=10s "$BIN" -s -l demo -- sh -c 'printf x >> "$1"' _ "$mark"
+RATELIMIT_INTERVAL=10s "$BIN" -s -l demo -- sh -c 'printf x >> "$1"' _ "$mark"
+if [[ "$(wc -c < "$mark")" != "1" ]]; then
+    echo "RATELIMIT_INTERVAL env not honored: saw $(wc -c < "$mark") attempts (expected 1)" >&2
+    exit 1
+fi
+
+# Flag -i 1ms overrides env: both calls should run (cooldown clears between them).
+: > "$mark"
+RATELIMIT_INTERVAL=10s "$BIN" -s -i 1ms -l demo2 -- sh -c 'printf x >> "$1"' _ "$mark"
+sleep 0.05
+RATELIMIT_INTERVAL=10s "$BIN" -s -i 1ms -l demo2 -- sh -c 'printf x >> "$1"' _ "$mark"
+if [[ "$(wc -c < "$mark")" != "2" ]]; then
+    echo "flag -i 1ms did not override env: saw $(wc -c < "$mark") attempts (expected 2)" >&2
+    exit 1
+fi

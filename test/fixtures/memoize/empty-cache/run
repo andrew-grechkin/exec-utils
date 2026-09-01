@@ -1,0 +1,27 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export MEMOIZE_DIR=$(mktemp -d)
+mark=$(mktemp)
+trap 'rm -rf "$MEMOIZE_DIR" "$mark"' EXIT
+
+# Wrapped cmd increments a counter and produces NO stdout.
+runcmd='printf x >> "$1"'
+
+# Without -e: cache is stored empty; next call sees size 0 -> MISS -> re-runs.
+"$BIN" -l no-empty -t 1m -- sh -c "$runcmd" _ "$mark"
+"$BIN" -l no-empty -t 1m -- sh -c "$runcmd" _ "$mark"
+count=$(wc -c < "$mark")
+if [[ "$count" != "2" ]]; then
+    echo "without -e: expected 2 invocations, got $count" >&2
+    exit 1
+fi
+
+# Reset counter, different label, retest with -e: 2nd call HITS.
+: > "$mark"
+"$BIN" -e -l with-empty -t 1m -- sh -c "$runcmd" _ "$mark"
+"$BIN" -e -l with-empty -t 1m -- sh -c "$runcmd" _ "$mark"
+count=$(wc -c < "$mark")
+if [[ "$count" != "1" ]]; then
+    echo "with -e: expected 1 invocation, got $count" >&2
+    exit 1
+fi

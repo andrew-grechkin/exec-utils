@@ -1,0 +1,1 @@
+-v emits "fresh cache is found with size: N" to stderr on a cache hit. Misses stay quiet.

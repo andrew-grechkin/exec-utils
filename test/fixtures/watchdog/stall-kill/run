@@ -1,0 +1,15 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+start=$EPOCHREALTIME
+rc=0
+"$BIN" -i 200ms -g 100ms -- sleep 10 </dev/null >/dev/null 2>&1 || rc=$?
+elapsed=$(perl -E 'say sprintf "%.3f", $ARGV[0] - $ARGV[1]' "$EPOCHREALTIME" "$start")
+
+if [[ "$rc" == "0" ]]; then
+    echo "expected non-zero exit (child was killed), got 0" >&2
+    exit 1
+fi
+if perl -E 'exit !($ARGV[0] > 3)' "$elapsed"; then
+    echo "child not killed promptly: took ${elapsed}s (expected << 3s)" >&2
+    exit 1
+fi

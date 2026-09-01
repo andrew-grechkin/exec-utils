@@ -1,0 +1,2 @@
+Wrapping a nonexistent command exits 127 (ExitNotFound). State dir is isolated so this doesn't pollute the host's
+ratelimit dir.

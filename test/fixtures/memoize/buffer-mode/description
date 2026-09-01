@@ -1,0 +1,2 @@
+-b buffers the wrapped command's output into the cache first, then emits it. Externally observable behavior (stdout +
+subsequent hits) is unchanged.

@@ -1,0 +1,7 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+out=$("$BIN" -i 5s -- bash -c 'echo hi; echo bye')
+if [[ "$out" != $'hi\nbye' ]]; then
+    echo "unexpected output: $out" >&2
+    exit 1
+fi

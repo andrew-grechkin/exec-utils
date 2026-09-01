@@ -1,0 +1,1 @@
+Wrapped command's exit code propagates through prefix unchanged.

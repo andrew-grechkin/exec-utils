@@ -1,0 +1,12 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export RATELIMIT_DIR=$(mktemp -d)
+mark=$(mktemp)
+trap 'rm -rf "$RATELIMIT_DIR" "$mark"' EXIT
+
+"$BIN" -s -i 10s -l demo -- sh -c 'printf x >> "$1"' _ "$mark"
+"$BIN" -s -i 10s -l demo -- sh -c 'printf x >> "$1"' _ "$mark"
+if [[ "$(wc -c < "$mark")" != "1" ]]; then
+    echo "expected exactly 1 invocation (2nd should skip), saw $(wc -c < "$mark")" >&2
+    exit 1
+fi

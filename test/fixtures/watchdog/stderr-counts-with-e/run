@@ -1,0 +1,6 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+# Child writes only to stderr every 100ms for 500ms total. -e -i 1.5s must NOT fire (stderr resets timer). The idle
+# bound is well above the 100ms tick interval so a scheduling stall of up to ~1s between two ticks under the parallel
+# fixture harness is still tolerated.
+"$BIN" -e -i 1.5s -- bash -c 'for i in 1 2 3 4 5; do echo tick-$i >&2; sleep 0.1; done' </dev/null >/dev/null 2>&1

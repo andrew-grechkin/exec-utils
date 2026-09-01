@@ -1,0 +1,2 @@
+First invocation with a brand-new state dir runs immediately (no cooldown to compare against) and propagates the
+command's exit code. Verified by counting attempts via a side-effect mark file.

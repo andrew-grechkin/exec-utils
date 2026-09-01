@@ -1,0 +1,45 @@
+Usage: watchdog [OPTIONS] [--] COMMAND [COMMAND ARGS...]
+
+Kill COMMAND if it stalls, that is, produces no output for a period. Complement to `timeout(1)`: timeout caps total
+wall-clock, watchdog fires on lack of progress. Useful for hung network calls, deadlocks, and stuck build steps.
+
+Watchdog runs COMMAND in its own process group (setpgid) and signals the whole group when it fires, so shell wrappers
+that spawn helper processes get taken down cleanly too.
+
+Options:
+  -i, --idle DUR         Kill if no output on STDOUT for this long (default: 1m).
+                         Accepts "500ms", "1h30min", "1day", etc.
+  -e, --stderr           Count STDERR output as activity too (default: STDOUT only).
+  -s, --signal SIG       Signal to send. Repeatable AND comma-splittable, e.g. "-s TERM,INT -s KILL". Sent in order
+                         with --grace between each. Names accepted case-insensitively, with or without SIG prefix
+                         (TERM = SIGTERM). KILL is auto-appended if not already in the list, since it is the only
+                         signal a child cannot ignore. Default: TERM,KILL
+  -g, --grace DUR        Time between successive signals (default: 10s). Give the child a chance to clean up on TERM
+                         before escalating.
+  -v, --verbose          Log fire-time and each signal to STDERR.
+
+  -h, --help             Display help message
+      --version          Display version information (tip: watchdog --version | jq -r .Version)
+  --                     Stop parsing options and treat arguments after as COMMAND
+
+Exit codes (coreutils timeout(1) convention):
+  0                      COMMAND exited 0 on its own
+  <child exit>           Wrapped command's non-zero exit (propagated)
+  128 + signum           Child died to a signal (bash convention). 143 = SIGTERM (cleaned up on our escalation),
+                         137 = SIGKILL (ignored TERM, forced dead)
+  125                    Bad flags, unknown signal name, pipe setup / wait failure
+  126                    Wrapped command found but couldn't be invoked
+  127                    Wrapped command not found
+
+Examples:
+  # Kill a hung curl if it doesn't produce output for 30s
+  watchdog -i 30s -- curl -sSL https://httpbin.org/delay/1
+
+  # Retry a possibly-stalling deploy, each attempt watched for 60s of silence
+  retry -n 3 -- watchdog -i 60s -- bash -c 'echo starting; sleep 5; echo done'
+
+  # Escalate through TERM, INT, then KILL, giving 2s between each
+  watchdog -i 5s -g 2s -s TERM,INT -- bash -c 'trap "" TERM; sleep 30'
+
+  # Count stderr activity too (progress bars written to fd 2 keep the watchdog fed)
+  watchdog -e -i 30s -- rsync -av src/ dst/

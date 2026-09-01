@@ -1,0 +1,1 @@
+Child's own exit code (non-signal) is propagated verbatim.

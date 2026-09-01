@@ -1,0 +1,30 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export ONCE_DIR=$(mktemp -d)
+log=$(mktemp)
+trap 'rm -rf "$ONCE_DIR" "$log"' EXIT
+
+start=$EPOCHREALTIME
+"$BIN" -w -l S -- sh -c 'sleep 0.3; printf "A\n" >> "$1"' _ "$log" </dev/null >/dev/null 2>&1 &
+a=$!
+# Ensure A grabs the lock first.
+sleep 0.05
+"$BIN" -w -l S -- sh -c 'sleep 0.3; printf "B\n" >> "$1"' _ "$log" </dev/null >/dev/null 2>&1 &
+b=$!
+wait "$a" "$b"
+elapsed=$(perl -E 'say sprintf "%.3f", $ARGV[0] - $ARGV[1]' "$EPOCHREALTIME" "$start")
+
+# Serial: total >= ~600ms. Parallel bug would land near 300ms.
+if perl -E 'exit !($ARGV[0] < 0.55)' "$elapsed"; then
+    echo "expected serialization (>=0.55s), got ${elapsed}s -- lock may not be held for the child's runtime" >&2
+    exit 1
+fi
+
+# Both must have run exactly once, in some order. The order between two concurrent -w callers is not guaranteed;
+# what "wait" promises is serialization, not FIFO.
+got=$(sort < "$log" | tr '\n' ',')
+if [[ "$got" != "A,B," ]]; then
+    echo "expected both A and B to run exactly once, got log:" >&2
+    cat "$log" >&2
+    exit 1
+fi

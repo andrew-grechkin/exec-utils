@@ -1,0 +1,2 @@
+A child that traps and ignores TERM survives the first signal. Watchdog waits --grace, then escalates to KILL (auto-
+appended) which is uncatchable. Verified via -v log output.

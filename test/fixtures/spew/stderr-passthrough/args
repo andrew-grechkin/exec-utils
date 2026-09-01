@@ -1,0 +1,3 @@
+sh
+-c
+printf err >&2; printf out

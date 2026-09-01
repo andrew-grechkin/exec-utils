@@ -1,0 +1,3 @@
+-- forces spew to stop consuming flags. Without --, `spew -h` prints help
+(exit 0). With --, `-h` is a command name; exec fails because no program is
+literally named "-h".

@@ -1,0 +1,21 @@
+#!/usr/bin/env -S bash -Eeuo pipefail
+
+export RATELIMIT_DIR=$(mktemp -d)
+mark=$(mktemp)
+trap 'rm -rf "$RATELIMIT_DIR" "$mark"' EXIT
+
+start=$EPOCHREALTIME
+"$BIN" -i 300ms -l demo -- sh -c 'printf x >> "$1"' _ "$mark"
+"$BIN" -i 300ms -l demo -- sh -c 'printf x >> "$1"' _ "$mark"
+elapsed=$(perl -E 'say sprintf "%.3f", $ARGV[0] - $ARGV[1]' "$EPOCHREALTIME" "$start")
+
+if [[ "$(wc -c < "$mark")" != "2" ]]; then
+    echo "wait-mode should run BOTH calls; saw $(wc -c < "$mark")" >&2
+    exit 1
+fi
+
+# Elapsed must be near 300ms (the second call waits). Accept 0.25..3 for parallel fixture load.
+if perl -E 'exit !($ARGV[0] < 0.25 || $ARGV[0] > 3)' "$elapsed"; then
+    echo "wait-mode timing off: ${elapsed}s (expected ~0.3s, allowed 0.25..3)" >&2
+    exit 1
+fi

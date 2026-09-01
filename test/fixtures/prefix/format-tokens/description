@@ -1,0 +1,1 @@
+%t (unix epoch) and %p (PID) tokens resolve correctly per invocation.
